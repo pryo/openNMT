@@ -33,6 +33,7 @@ def start(config_file,
         out = {}
         out['status'] = STATUS_OK
         return jsonify(out)
+        #return 200
 
     @app.route('/clone_model/<int:model_id>', methods=['POST'])
     def clone_model(model_id):
