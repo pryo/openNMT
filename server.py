@@ -73,6 +73,8 @@ def start(config_file,
     @app.route('/translate', methods=['POST'])
     def translate():
         inputs = request.get_json(force=True)
+        # print(type(inputs))
+        # print(inputs)
         out = {}
         try:
             translation, scores, n_best, times = translation_server.run(inputs)

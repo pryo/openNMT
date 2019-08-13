@@ -1,0 +1,21 @@
+{
+    "models_root": "./available_models",
+    "models": [
+        {
+            "id": 100,
+            "model": "averaged-10-epoch.pt",
+            "timeout": 600,
+            "on_timeout": "to_cpu",
+            "load": true,
+            "opt": {
+                "gpu": 0,
+                "beam_size": 5,
+                "batch_size": 1
+            },
+            "tokenizer": {
+                "type": "sentencepiece",
+                "model": "sentencepiece.model"
+            }
+        }
+    ]
+}
