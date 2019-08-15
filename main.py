@@ -30,7 +30,7 @@ def _load_model():
     global device
     global word_map
     global rev_word_map
-    checkpoint = torch.load('acailable_models/BEST_checkpoint_coco_5_cap_per_img_5_min_word_freq.pth.tar')
+    checkpoint = torch.load('available_models/BEST_checkpoint_coco_5_cap_per_img_5_min_word_freq.pth.tar')
     decoder = checkpoint['decoder']
     decoder = decoder.to(device)
     decoder.eval()
