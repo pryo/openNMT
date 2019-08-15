@@ -3,6 +3,7 @@ sudo /opt/deeplearning/install-driver.sh
 cd ~
 git clone https://github.com/pryo/openNMT.git
 cd openNMT
+git checkout intergrate
 git clone https://github.com/pryo/Caption.git
 sudo pip3 install -r requirements.txt
 cd available_models
