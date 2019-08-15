@@ -8,7 +8,7 @@ import torch
 STATUS_OK = "ok"
 STATUS_ERROR = "error"
 
-#device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 app = Flask(__name__)
 #models
 translation_server = None
