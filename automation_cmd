@@ -23,4 +23,4 @@ sudo pip3 install -r requirements.txt
 cd available_models
 python download_model.py
 cd ..
-sudo gunicorn --reload --timeout 120--workers=10 --bind 0.0.0.0:80 main:app --daemon
+sudo gunicorn --reload --timeout 120--workers=10 --bind 0.0.0.0:80 main_standalone:app --daemon
