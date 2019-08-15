@@ -1,10 +1,10 @@
 
 from onmt.translate import TranslationServer, ServerModelError
-
+import Caption.caption as caption
 import logging
-
+import json
 from flask import Flask, request,render_template,jsonify
-
+import torch
 STATUS_OK = "ok"
 STATUS_ERROR = "error"
 
@@ -12,17 +12,80 @@ STATUS_ERROR = "error"
 app = Flask(__name__)
 #models
 translation_server = None
+
+checkpoint = None
+decoder = None
+encoder = None
+word_map = None
+rev_word_map  = None
+
 @app.before_first_request
 def _load_model():
     global translation_server
     translation_server = TranslationServer()
     translation_server.start('./available_models/conf.json')
+    global checkpoint
+    global decoder
+    global encoder
+    global device
+    global word_map
+    global rev_word_map
+    checkpoint = torch.load('acailable_models/BEST_checkpoint_coco_5_cap_per_img_5_min_word_freq.pth.tar')
+    decoder = checkpoint['decoder']
+    decoder = decoder.to(device)
+    decoder.eval()
+    encoder = checkpoint['encoder']
+    encoder = encoder.to(device)
+    encoder.eval()
+    with open('available_models/WORDMAP_coco_5_cap_per_img_5_min_word_freq.json', 'r') as j:
+        word_map = json.load(j)
+    rev_word_map = {v: k for k, v in word_map.items()}
 
 def prefix_route(route_function, prefix='', mask='{0}{1}'):
     def newroute(route, *args, **kwargs):
         return route_function(mask.format(prefix, route), *args, **kwargs)
     return newroute
 
+
+def caption():
+    # beam = None
+    try:
+        img_obj = request.files['picture']
+    except:
+        #report(traceback.format_exc())
+        logging.exception('Error with image upload')
+        return 'Error with image upload',500
+    try:
+        beam_arg = request.args['beam_size']
+        #beam = request.files['beam_size']
+        assert 0<int(beam_arg)<10
+        beam = int(beam_arg)
+    except:
+        #report(traceback.format_exc())
+        logging.exception('Invalid beam input')
+        beam = 5
+
+    try:
+        translate_api = request.args['translate_api']
+    except:
+        #report(traceback.format_exc())
+        logging.exception('no translator api specified, using the one in the conf file')
+    seq,alphas = caption.caption_image_beam_search(encoder,decoder,img_obj,word_map,beam_size=beam)
+    # seq is a list of numbers
+    try:
+        words = [rev_word_map[ind] for ind in seq]
+    except:
+        #report(traceback.format_exc())
+        return 'can not get word from seq',500
+    # words is a list of string
+    try:
+        r =translate(words,translate_api)
+    except:
+        #report(traceback.format_exc())
+        return 'translate failed',500
+    if r.status_code==500:
+        return 'translation server give 500',500
+    return r
 
 @app.route('/models', methods=['GET'])
 def get_models():
@@ -71,7 +134,46 @@ def unload_model(model_id):
         out['error'] = str(e)
 
     return jsonify(out)
+@app.route('/caption_translate', methods=['POST'])
+def caption_translate():
+    try:
+        img_obj = request.files['picture']
+    except:
+        #report(traceback.format_exc())
+        logging.exception('Error with image upload')
+        return 'Error with image upload',500
+    try:
+        beam_arg = request.args['beam_size']
+        #beam = request.files['beam_size']
+        assert 0<int(beam_arg)<10
+        beam = int(beam_arg)
+    except:
+        #report(traceback.format_exc())
+        logging.exception('Invalid beam input')
+        beam = 5
+    seq, alphas = caption.caption_image_beam_search(encoder, decoder, img_obj, word_map, beam_size=beam)
+    try:
+        words = [rev_word_map[ind] for ind in seq]
+    except:
+        #report(traceback.format_exc())
+        return 'can not get word from seq',500
+    string = ' '.join(words)
+    out = {}
+    inputs = [{"id": 100, "src": string}]
+    try:
+        translation, scores, n_best, times = translation_server.run(inputs)
+        assert len(translation) == len(inputs)
+        assert len(scores) == len(inputs)
 
+        out = [[{"src": inputs[i]['src'], "tgt": translation[i],
+                 "n_best": n_best,
+                 "pred_score": scores[i]}
+                for i in range(len(translation))]]
+    except ServerModelError as e:
+        out['error'] = str(e)
+        out['status'] = STATUS_ERROR
+
+    return jsonify(out)
 @app.route('/translate', methods=['POST'])
 def translate():
     inputs = request.get_json(force=True)

@@ -17,3 +17,7 @@ def download_blob(bucket_name, source_blob_name, destination_file_name):
         source_blob_name,
         destination_file_name))
 download_blob(bucket_name,'averaged-10-epoch.pt','averaged-10-epoch.pt')
+checkpoint='BEST_checkpoint_coco_5_cap_per_img_5_min_word_freq.pth.tar'
+wordmap ='WORDMAP_coco_5_cap_per_img_5_min_word_freq.json'
+download_blob(bucket_name,checkpoint,checkpoint)
+download_blob(bucket_name,wordmap,wordmap)
